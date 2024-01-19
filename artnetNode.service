@@ -1,0 +1,10 @@
+[Unit]
+Description=”Artnet Node for RGB Panel Matrix”
+
+[Service]
+Restart=always
+WorkingDirectory=/root/rpi-rgb-led-matrix
+ExecStart=/usr/bin/python3 node.py
+
+[Install]
+WantedBy=multi-user target
