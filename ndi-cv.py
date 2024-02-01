@@ -12,27 +12,27 @@ def main():
     options = RGBMatrixOptions();
     options.multiplexing = 0;
     options.row_address_type = 0;
-    options.brightness = 90;
-    options.rows = 32;
+    options.brightness = 100;
+    options.rows = 64;
     options.cols = 64;
     options.chain_length = 8;
     options.parallel = 1;
-    options.pixel_mapper_config = 'Remap:128,128|0,0s|64,0s|64,32n|0,32n|0,64s|64,64s|64,96n|0,96n';
-    options.hardware_mapping = 'adafruit-hat';
+    options.pixel_mapper_config = 'Remap:256,128|0,0s|64,0s|128,0s|192,0s|192,64n|128,64n|64,64n|0,64n';
     options.inverse_colors = False;
     options.led_rgb_sequence = "RGB";
-    options.gpio_slowdown = 4;
-    options.pwm_lsb_nanoseconds = 75;
+    options.gpio_slowdown = 5;
+    options.pwm_lsb_nanoseconds = 50;
     options.show_refresh_rate = 1;
     options.disable_hardware_pulsing = False;
     options.scan_mode = 0;
-    options.pwm_bits = 11;
+    options.pwm_bits = 8;
     options.daemon = 0;
     options.drop_privileges = 0;
     display = RGBMatrix(options=options);
     font = graphics.Font();
     font.LoadFont('fonts/6x10.bdf');
     textColor = graphics.Color(255, 0, 0);
+    panelname = '256x128_0';
 
     localIp = (([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")] or [[(s.connect(("8.8.8.8", 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) + ["no IP found"])[0];
 
@@ -49,9 +49,10 @@ def main():
 
     sources = [];
     while not len(sources) > 0:
-        graphics.DrawText(display, font, 0, 10, textColor, "NDI source lookup...");
-        graphics.DrawText(display, font, 0, 25, textColor, "IP: " + localIp);
-        graphics.DrawText(display, font, 0, 40, textColor, "Display size: 128x128");
+        graphics.DrawText(display, font, 5, 10, textColor, "NDI source lookup...");
+        graphics.DrawText(display, font, 5, 25, textColor, "IP: " + localIp);
+        graphics.DrawText(display, font, 5, 40, textColor, "Display size: 256x128");
+        graphics.DrawText(display, font, 5, 55, textColor, "Source name: " + panelname);
         
         ndi.find_wait_for_sources(ndi_find, 1000);
         sources = ndi.find_get_current_sources(ndi_find);
@@ -64,7 +65,15 @@ def main():
     if ndi_recv is None:
         return 0
 
-    ndi.recv_connect(ndi_recv, sources[0])
+    targetSource = None;
+    for source in sources:
+        if panelname in source.ndi_name:
+            targetSource = source;
+    
+    if targetSource is None:
+        return 0
+
+    ndi.recv_connect(ndi_recv, source)
 
     ndi.find_destroy(ndi_find)
 
@@ -72,7 +81,7 @@ def main():
 
     while True:
         s = time.time();
-        t, v, _, _ = ndi.recv_capture_v2(ndi_recv, 5000)
+        t, v, _, _ = ndi.recv_capture_v2(ndi_recv, 3000)
 
         if t == ndi.FRAME_TYPE_VIDEO:
             frame = np.copy(v.data);
